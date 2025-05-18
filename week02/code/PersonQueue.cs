@@ -8,17 +8,17 @@ public class PersonQueue
     public int Length => _queue.Count;
 
     /// <summary>
-    /// Add a person to the queue
+    /// Add a person to the queue (FIFO)
     /// </summary>
     /// <param name="person">The person to add</param>
     public void Enqueue(Person person)
     {
-        _queue.Insert(0, person);
+        _queue.Add(person); // Add to end (back of queue)
     }
 
     public Person Dequeue()
     {
-        var person = _queue[0];
+        var person = _queue[0];  // Remove from front
         _queue.RemoveAt(0);
         return person;
     }
