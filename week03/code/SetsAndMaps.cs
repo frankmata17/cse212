@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 
 public static class SetsAndMaps
@@ -22,7 +27,19 @@ public static class SetsAndMaps
     public static string[] FindPairs(string[] words)
     {
         // TODO Problem 1 - ADD YOUR CODE HERE
-        return [];
+        var seen = new HashSet<string>();
+        var result = new List<string>();
+
+        foreach (var word in words)
+        {
+            var reversed = new string(new[] { word[1], word[0] });
+            if (seen.Contains(reversed))
+            {
+                result.Add($"{reversed} & {word}");
+            }
+            seen.Add(word);
+        }
+        return result.ToArray();
     }
 
     /// <summary>
@@ -43,6 +60,19 @@ public static class SetsAndMaps
         {
             var fields = line.Split(",");
             // TODO Problem 2 - ADD YOUR CODE HERE
+            if (fields.Length >= 4)
+            {
+                var degree = fields[3].Trim();
+
+                if (degrees.ContainsKey(degree))
+                {
+                    degrees[degree]++;
+                }
+                else
+                {
+                    degrees[degree] = 1;
+                }
+            }
         }
 
         return degrees;
@@ -67,7 +97,31 @@ public static class SetsAndMaps
     public static bool IsAnagram(string word1, string word2)
     {
         // TODO Problem 3 - ADD YOUR CODE HERE
-        return false;
+        string Normalize(string s) =>
+            new string(s.ToLower().Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+        var w1 = Normalize(word1);
+        var w2 = Normalize(word2);
+
+        if (w1.Length != w2.Length)
+            return false;
+
+        var freq1 = new Dictionary<char, int>();
+        var freq2 = new Dictionary<char, int>();
+
+        foreach (var c in w1)
+        {
+            if (!freq1.ContainsKey(c)) freq1[c] = 0;
+            freq1[c]++;
+        }
+
+        foreach (var c in w2)
+        {
+            if (!freq2.ContainsKey(c)) freq2[c] = 0;
+            freq2[c]++;
+        }
+
+        return freq1.OrderBy(kvp => kvp.Key).SequenceEqual(freq2.OrderBy(kvp => kvp.Key));
     }
 
     /// <summary>
@@ -87,20 +141,45 @@ public static class SetsAndMaps
     public static string[] EarthquakeDailySummary()
     {
         const string uri = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+
         using var client = new HttpClient();
         using var getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
-        using var jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
+        using var response = client.Send(getRequestMessage);
+        response.EnsureSuccessStatusCode();
+
+        using var jsonStream = response.Content.ReadAsStream();
         using var reader = new StreamReader(jsonStream);
         var json = reader.ReadToEnd();
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
-        // TODO Problem 5:
-        // 1. Add code in FeatureCollection.cs to describe the JSON using classes and properties 
-        // on those classes so that the call to Deserialize above works properly.
-        // 2. Add code below to create a string out each place a earthquake has happened today and its magitude.
-        // 3. Return an array of these string descriptions.
-        return [];
+        if (featureCollection?.Features == null)
+            return Array.Empty<string>();
+
+        var results = featureCollection.Features
+            .Where(f => f?.Properties?.Place != null && f.Properties.Mag.HasValue)
+            .Select(f => $"{f.Properties.Place} - Mag {f.Properties.Mag.Value:F2}")
+            .ToArray();
+
+        return results;
     }
+}
+
+// Supporting classes for JSON deserialization
+
+public class FeatureCollection
+{
+    public List<Feature> Features { get; set; }
+}
+
+public class Feature
+{
+    public FeatureProperties Properties { get; set; }
+}
+
+public class FeatureProperties
+{
+    public double? Mag { get; set; }
+    public string Place { get; set; }
 }
