@@ -41,18 +41,20 @@ public static class Recursion
     /// You can assume that the size specified is always valid (between 1 
     /// and the length of the letters list).
     /// </summary>
-    public static void PermutationsChoose(List<string> results, string letters, int size, string word = "")
+    public static void PermutationsChoose(List<string> results, string letters, int length, string soFar = "")
     {
-        if (word.Length == size)
+        if (length == 0)
         {
-            results.Add(word);
+            results.Add(soFar);
             return;
         }
 
         for (int i = 0; i < letters.Length; i++)
         {
-            string remaining = letters.Substring(0, i) + letters.Substring(i + 1);
-            PermutationsChoose(results, remaining, size, word + letters[i]);
+            if (!soFar.Contains(letters[i]))
+            {
+                PermutationsChoose(results, letters, length - 1, soFar + letters[i]);
+            }
         }
     }
 
@@ -100,26 +102,24 @@ public static class Recursion
     /// </summary>
     /// 
 
-    public static BigInteger CountWaysToClimb(int s)
-{
-    var remember = new Dictionary<int, BigInteger>();
-    return CountWaysToClimb(s, remember);
-}
+    private static Dictionary<int, decimal> climbMemo = new();
+    public static decimal CountWaysToClimb(int steps)
+    {
+        if (steps < 0)
+            return 0;
+        if (steps == 0)
+            return 1;
 
-private static BigInteger CountWaysToClimb(int s, Dictionary<int, BigInteger> remember)
-{
-    if (s < 0) return 0;
-    if (s == 0) return 1;
+        if (climbMemo.ContainsKey(steps))
+            return climbMemo[steps];
 
-    if (remember.ContainsKey(s)) return remember[s];
+        decimal result = CountWaysToClimb(steps - 1) +
+                         CountWaysToClimb(steps - 2) +
+                         CountWaysToClimb(steps - 3);
 
-    var total = CountWaysToClimb(s - 1, remember)
-              + CountWaysToClimb(s - 2, remember)
-              + CountWaysToClimb(s - 3, remember);
-
-    remember[s] = total;
-    return total;
-}
+        climbMemo[steps] = result;
+        return result;
+    }
 
 
 
@@ -136,55 +136,71 @@ private static BigInteger CountWaysToClimb(int s, Dictionary<int, BigInteger> re
     /// Using recursion, insert all possible binary strings for a given pattern into the results list.  You might find 
     /// some of the string functions like IndexOf and [..X] / [X..] to be useful in solving this problem.
     /// </summary>
-    public static void WildcardBinary(string pattern, List<string> results)
+    public static void WildcardBinary(string input, List<string> results)
     {
-        int starIndex = pattern.IndexOf('*');
+        WildcardBinaryHelper(input.ToCharArray(), 0, results);
+    }
 
-        if (starIndex == -1)
+    private static void WildcardBinaryHelper(char[] chars, int index, List<string> results)
+    {
+        if (index == chars.Length)
         {
-            results.Add(pattern);
+            results.Add(new string(chars));
             return;
         }
 
-        WildcardBinary(pattern.Substring(0, starIndex) + "0" + pattern.Substring(starIndex + 1), results);
-
-        WildcardBinary(pattern.Substring(0, starIndex) + "1" + pattern.Substring(starIndex + 1), results);
+        if (chars[index] == '*')
+        {
+            chars[index] = '0';
+            WildcardBinaryHelper(chars, index + 1, results);
+            chars[index] = '1';
+            WildcardBinaryHelper(chars, index + 1, results);
+            chars[index] = '*'; // backtrack
+        }
+        else
+        {
+            WildcardBinaryHelper(chars, index + 1, results);
+        }
     }
 
     /// <summary>
     /// Use recursion to insert all paths that start at (0,0) and end at the
     /// 'end' square into the results list.
     /// </summary>
-    public static void SolveMaze(List<string> results, Maze maze, int x = 0, int y = 0, List<ValueTuple<int, int>>? currPath = null)
+    public static void SolveMaze(List<string> results, Maze maze)
     {
-        if (currPath == null)
-        {
-            currPath = new List<ValueTuple<int, int>>();
-        }
-
-
-        if (!maze.IsValidMove(currPath, x, y))
-        {
-            return;
-        }
-
-
-        currPath.Add((x, y));
-
-
-        if (maze.IsEnd(x, y))
-        {
-            results.Add(currPath.AsString());
-        }
-        else
-        {
-
-            SolveMaze(results, maze, x + 1, y, currPath);
-            SolveMaze(results, maze, x - 1, y, currPath);
-            SolveMaze(results, maze, x, y + 1, currPath);
-            SolveMaze(results, maze, x, y - 1, currPath);
-        }
-
-        currPath.RemoveAt(currPath.Count - 1);
+        // List<(int, int)> path = new();
+        // bool[,] visited = new bool[maze.Rows, maze.Cols];
+        // SolveMazeHelper(maze, 0, 0, path, visited, results);
     }
+
+    // private static void SolveMazeHelper(Maze maze, int row, int col, List<(int, int)> path, bool[,] visited, List<string> results)
+    // {
+    //     if (!maze.IsValid(row, col) || visited[row, col])
+    //         return;
+
+    //     path.Add((row, col));
+    //     visited[row, col] = true;
+
+    //     if (maze.IsExit(row, col))
+    //     {
+    //         results.Add(FormatPath(path));
+    //     }
+    //     else
+    //     {
+    //         SolveMazeHelper(maze, row - 1, col, path, visited, results); // up
+    //         SolveMazeHelper(maze, row + 1, col, path, visited, results); // down
+    //         SolveMazeHelper(maze, row, col - 1, path, visited, results); // left
+    //         SolveMazeHelper(maze, row, col + 1, path, visited, results); // right
+    //     }
+
+    //     visited[row, col] = false;
+    //     path.RemoveAt(path.Count - 1);
+    // }
+
+    // private static string FormatPath(List<(int, int)> path)
+    // {
+    //     return $"<List>{{{string.Join(", ", path.Select(p => $"({p.Item1}, {p.Item2})"))}}}";
+    // }
+    
 }
