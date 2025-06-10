@@ -79,9 +79,14 @@ public class BinarySearchTree : IEnumerable<int>
     }
 
     private void TraverseBackward(Node? node, List<int> values)
+{
+    if (node is not null)
     {
-        // TODO Problem 3
+        TraverseBackward(node.Right, values); // Largest first
+        values.Add(node.Data);                // Then root
+        TraverseBackward(node.Left, values);  // Then smallest
     }
+}
 
     /// <summary>
     /// Get the height of the tree
